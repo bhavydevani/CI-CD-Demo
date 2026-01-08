@@ -2,7 +2,7 @@ name: CI Learning
 
 on:
   push:
-    branches: [main]
+    branches: [main, dempo]
 
 jobs:
   test:
