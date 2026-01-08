@@ -1,5 +1,11 @@
+name: CI Learning
+
+on:
+  push:
+    branches: [main]
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hello CI/CD"
+      - run: echo "Pipeline is running!"
