@@ -1,11 +1,55 @@
-name: CI Learning
+name: Fullstack CI (Backend + Frontend)
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  test:
+  backend:
+    name: Build Backend (.NET API)
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "Pipeline is running!"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore backend dependencies
+        run: dotnet restore
+        working-directory: Backend/BackendApi
+
+      - name: Build backend
+        run: dotnet build --configuration Release --no-restore
+        working-directory: Backend/BackendApi
+
+      - name: Run backend tests
+        run: dotnet test --configuration Release --no-build
+        working-directory: Backend/BackendApi
+
+  frontend:
+    name: Build Frontend (React)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: Frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: Frontend
