@@ -43,8 +43,6 @@ jobs:
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with:
-          node-version: "18"
 
       - name: Install frontend dependencies
         run: npm install
