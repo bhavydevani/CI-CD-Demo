@@ -1,4 +1,4 @@
-name: Fullstack CI (Backend + Frontend)
+name: Fullstack CI (Backend + Frontend + OpenAPI Validation)
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend:
-    name: Build Backend (.NET API)
+    name: Build Backend & Validate OpenAPI
     runs-on: ubuntu-latest
 
     steps:
@@ -33,9 +33,39 @@ jobs:
         run: dotnet test --configuration Release --no-build
         working-directory: Backend/BackendApi
 
+      # 🔹 Start API & generate OpenAPI spec
+      - name: Run backend and export OpenAPI
+        run: |
+          mkdir -p openapi
+          dotnet run --project Backend/BackendApi/BackendApi.csproj &
+          sleep 15
+          curl http://localhost:5000/swagger/v1/swagger.yaml -o openapi/current.yaml
+
+      # 🔹 Install OpenAPI diff tool
+      - name: Install OpenAPI Diff tool
+        run: npm install -g openapi-diff
+
+      # 🔹 Validate OpenAPI syntax
+      - name: Validate OpenAPI syntax
+        run: openapi-diff openapi/current.yaml openapi/current.yaml
+
+      # 🔹 Detect breaking API changes
+      - name: Detect OpenAPI breaking changes
+        run: |
+          openapi-diff openapi/previous.yaml openapi/current.yaml \
+          --fail-on-incompatible
+
+      # 🔹 Upload OpenAPI as artifact (optional but useful)
+      - name: Upload OpenAPI spec
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: openapi/current.yaml
+
   frontend:
     name: Build Frontend (React)
     runs-on: ubuntu-latest
+    needs: backend   # ⬅ frontend runs ONLY if backend + OpenAPI validation passes
 
     steps:
       - name: Checkout repository
@@ -43,6 +73,8 @@ jobs:
 
       - name: Setup Node
         uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
       - name: Install frontend dependencies
         run: npm install
@@ -51,14 +83,3 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: Frontend
-
-      - name: Install OpenAPI Diff tool
-        run: npm install -g openapi-diff
-
-      - name: Validate OpenAPI syntax
-        run: openapi-diff openapi/current.yaml openapi/current.yaml
-
-      - name: Detect breaking changes
-        run: |
-          openapi-diff openapi/previous.yaml openapi/current.yaml \
-          --fail-on-incompatible
